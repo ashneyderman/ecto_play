@@ -1,5 +1,15 @@
 defmodule EctoPlay.Base do
 
+  def split_alias_and_field(query) do
+    {_, acc} = Macro.postwalk(query, [], 
+      fn
+        ({a,_,_} = al, acc) when is_atom(a) and a != :. -> {al, [al|acc]}
+        (f, acc) when is_atom(f) -> {f, [f|acc]}
+        (n, acc) -> {n, acc}
+      end) 
+    acc |> Enum.reverse
+  end
+
   defmacro __using__(_) do
     quote do
       use Ecto.Model
@@ -16,26 +26,33 @@ defmodule EctoPlay.Base do
       def delete(rec), do: Repo.delete(rec)
       def delete(type, id), do: Repo.delete(type, id)
       
-      defmacro ns_eq(q,{a,f},v) do
+      defmacro ns_eq(query,feeld,value) do
         quote do
-          if unquote(v) == nil, 
-              do: unquote(q),
-            else: where(unquote(q), [w,r], field(unquote(a),^unquote(f)) == ^unquote(v))
+          if unquote(value) == nil,
+            do: unquote(query),
+          else: where(unquote(query), 
+                      [aliaz], 
+                      field(aliaz, ^unquote(feeld)) == ^unquote(value))
         end
       end
-      # defmacro ns_eq(q,f,v) do
-      #   quote do
-      #     if unquote(v) == nil do
-      #       unquote(q)
-      #     else
-      #       where(unquote(q),[w],field(w,^unquote(f)) == ^unquote(v))
-      #     end
-      #   end
-      # end
 
+      defmacro ns_eq(query,binds,{aliaz,feeld},value) do
+        quote do
+          if unquote(value) == nil, 
+            do: unquote(query),
+          else: where(unquote(query), 
+                      unquote(binds), 
+                      field(unquote(aliaz), ^unquote(feeld)) == ^unquote(value))
+        end
+      end
+      defmacro ns_eq(query,binds,aliased_field,value) do
+        [aliaz, feeld] = EctoPlay.Base.split_alias_and_field(aliased_field)
+        quote do
+          ns_eq(unquote(query), unquote(binds), {unquote(aliaz), unquote(feeld)}, unquote(value))
+        end
+      end
     end
-  end
-  
+  end 
 end
 
 defmodule EctoPlay.Report do
@@ -61,21 +78,12 @@ defmodule EctoPlay.Weather do
     belongs_to :report, EctoPlay.Report
   end
 
-  # def my_find(opts) do
-  #   q = (from w in EctoPlay.Weather, select: w)
-  #   [:city,:prcp] 
-  #     |> Enum.reduce(q, &(ns_eq(&2, &1, opts |> Dict.get(&1))))
-  #     |> all
-  # end
-
-  # def my_find1(opts) do
-  #   q = (from w in EctoPlay.Weather, select: w)
-  #   [:city,:prcp] 
-  #     |> Enum.reduce(q, fn(field, query) -> 
-  #                         ns_eq(query, {w,field}, opts |> Dict.get(field))
-  #                       end)
-  #     |> all
-  # end
+  def my_find1(opts) do
+    q = (from w in EctoPlay.Weather, select: w)
+    [:city,:prcp] 
+      |> Enum.reduce(q, &(ns_eq(&2, &1, opts |> Dict.get(&1))))
+      |> all
+  end
 
   def my_find2(opts) do
     q = (from w in EctoPlay.Weather, 
@@ -84,7 +92,7 @@ defmodule EctoPlay.Weather do
 
     q0 = [:city,:prcp] 
           |> Enum.reduce(q,  fn(field, query) -> 
-                               ns_eq(query, {w,field}, opts |> Dict.get(field))
+                               ns_eq(query, [w], {w,field}, opts |> Dict.get(field))
                              end)
 
     IO.puts "q0: #{inspect(q0, struct: false)}"
@@ -92,7 +100,7 @@ defmodule EctoPlay.Weather do
     q1 = [:name, :month]
           |> Enum.reduce(q0, fn(field, query) ->
                                IO.puts "field: #{field}" 
-                               ns_eq(query, {r,field}, opts |> Dict.get(field))
+                               ns_eq(query, [w,r], {r,field}, opts |> Dict.get(field))
                              end)
 
     IO.puts "q1: #{inspect(q1, struct: false)}"
@@ -100,11 +108,16 @@ defmodule EctoPlay.Weather do
     q1 |> all
   end
 
-  # defp t(opts) do
-  #   fn(field, query) -> 
-  #     ns_eq(query, {w,field}, opts |> Dict.get(field))
-  #   end)
-  # end
+  def my_find3(opts) do
+    (from w in EctoPlay.Weather, 
+       join: r in EctoPlay.Report, on: w.report_id == r.id, 
+           select: {w.city, r.name})
+    |> ns_eq([w,r], w.city,  opts |> Dict.get(:city))
+    |> ns_eq([w,r], w.prcp,  opts |> Dict.get(:prcp))
+    |> ns_eq([w,r], r.name,  opts |> Dict.get(:name))
+    |> ns_eq([w,r], r.month, opts |> Dict.get(:month))
+    |> all
+  end
 
 end
 
