@@ -1,4 +1,4 @@
-defmodule EctoPlay.Repo.Migrations.Init do
+defmodule EctoPlay.Repo.Migrations.Meteo do
   use Ecto.Migration
 
   def change do
