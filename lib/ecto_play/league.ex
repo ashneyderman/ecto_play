@@ -7,8 +7,8 @@ defmodule EctoPlay.League do
       field :name, :string
       field :city, :string
       has_many :members, EctoPlay.League.TeamMember
-      has_many :players, EctoPlay.League.Player
-      has_many :coaches, EctoPlay.League.Coach
+      has_many :players, through: [:members, :player]
+      has_many :coaches, through: [:members, :coach]
       timestamps
     end
   end
@@ -17,7 +17,6 @@ defmodule EctoPlay.League do
     use EctoPlay.Model.Base
 
     schema "team_member" do
-      field :first_season, :string
       belongs_to :team, EctoPlay.League.Team
       belongs_to :player, EctoPlay.League.Player
       belongs_to :coach, EctoPlay.League.Coach
@@ -28,9 +27,10 @@ defmodule EctoPlay.League do
   defmodule Player do
     use EctoPlay.Model.Base
 
-    schema "palyer" do
+    schema "player" do
       field :name, :string
       field :title, :string
+      timestamps
     end
   end
 
@@ -40,7 +40,7 @@ defmodule EctoPlay.League do
     schema "coach" do
       field :name, :string
       field :title, :string
-      belongs_to :team_member, EctoPlay.League.TeamMember
+      timestamps
     end
   end
   

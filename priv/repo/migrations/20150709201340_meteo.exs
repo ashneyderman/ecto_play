@@ -7,7 +7,7 @@ defmodule EctoPlay.Repo.Migrations.Meteo do
       add :month, :string, size: 7
       timestamps
     end
-
+    
     create table(:weather) do
       add :city,    :string, size: 40
       add :temp_lo, :integer

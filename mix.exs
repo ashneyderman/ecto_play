@@ -18,7 +18,7 @@ defmodule EctoPlay.Mixfile do
   defp deps do
     [
       { :postgrex, "~> 0.8.0" },
-      { :ecto, "~> 0.11.3" },
+      { :ecto, "~> 0.13.1" },
     ]
   end
 end
