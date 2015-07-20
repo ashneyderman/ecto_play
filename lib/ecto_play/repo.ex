@@ -3,7 +3,7 @@ defmodule EctoPlay.Repo do
   use Ecto.Repo, otp_app: :ecto_play
 
   def log(arg, fun) do
-    Logger.debug "arg: #{inspect arg}"
+    Logger.debug "query: #{inspect arg}"
     fun.()
   end
 
