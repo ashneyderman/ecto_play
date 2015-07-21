@@ -33,8 +33,8 @@ defmodule EctoPlay.Meteo do
       (from w in EctoPlay.Meteo.Weather, 
         join: r in EctoPlay.Meteo.Report, on: w.report_id == r.id, 
         select: {w.city, r.name})
-      |> ns_eq(w.city, opts |> Dict.get(:city))
-      |> ns_eq(w.prcp, opts |> Dict.get(:prcp))
+      |> ns_eq([w,r], w.city, opts |> Dict.get(:city))
+      |> ns_eq([w,r], w.prcp, opts |> Dict.get(:prcp))
       |> ns_eq([w,r], r.name, opts |> Dict.get(:name))
       |> ns_eq([w,r], r.month, opts |> Dict.get(:month))
       |> all
